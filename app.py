@@ -2,9 +2,11 @@
 from fastapi import FastAPI
 
 # Import Utils
-from utils import process_data
+from utils import process_data, split_data, save_data
 
-# Import NLP
+# Import Embedding Model
+from embedding import HuggingFaceEmbedding
+
 
 ### Initialize FastAPI
 app = FastAPI()
@@ -31,11 +33,15 @@ def upload_file(data_path: str):
     This is a function to process the data from the client.
 
     Args:
-    data_path (str): Đường dẫn đến file pdf.
+        data_path (str): Đường dẫn đến file pdf.
 
     Returns:
-    list: Danh sách các câu trong file pdf.
-    
+        list: Danh sách các câu trong file pdf.
+
     """
-    return process_data(data_path)
+    embedding_model = HuggingFaceEmbedding("keepitreal/vietnamese-sbert")
+    documents = process_data(data_path)
+    docs = split_data(documents, embedding_model.embedding)
+    chroma = save_data(collection_name="test", embedding_model=embedding_model.embedding, documents=docs)
+    return "success"
 

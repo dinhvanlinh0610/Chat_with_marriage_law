@@ -1,5 +1,6 @@
 from loader import PDFLoader
 from chunker import SemanticChunk
+from vector_store import ChromaDB
 # Hàm xử lý dữ liệu nhận được từ client 
 def process_data(data):
     """
@@ -36,3 +37,12 @@ def split_data(data, embedding_model):
     """
     semantic_chunk = SemanticChunk(embedding_model=embedding_model)
     return semantic_chunk.splits(data)
+
+def save_data(collection_name="test", embedding_model=None, path="./db/chroma_db", documents=None):
+
+    
+    vector_store = ChromaDB(collection_name=collection_name, embedding_model=embedding_model, persist_directory=path)
+    chroma = vector_store.add(documents=documents)
+    return chroma
+
+

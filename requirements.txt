@@ -3,4 +3,5 @@ uvicorn
 langchain
 langchain_community
 langchain_experimental
+langchain_huggingface
 pypdf
