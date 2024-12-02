@@ -1,7 +1,11 @@
 fastapi
 uvicorn
+python-multilpart
 langchain
 langchain_community
 langchain_experimental
 langchain_huggingface
+langchain_groq
+groq
+langchain_chroma
 pypdf
