@@ -3,7 +3,7 @@ from uuid import uuid4
 
 class ChromaDB():
 
-    def __init__(self, collection_name="example_collection", embedding_model=None, persist_directory="./db/chroma_db"):
+    def __init__(self, collection_name="new", embedding_model=None, persist_directory="./db/chroma_db"):
         """
         Initialize the ChromaDB object.
 
@@ -25,7 +25,7 @@ class ChromaDB():
             object: A retriever object.
         """
         retriever = self.chroma.as_retriever(
-            search_type="hybrid",
+            search_type="mmr",
             search_kwargs={"k": 3, "fetch_k": 5}
         )
         return retriever
@@ -78,6 +78,15 @@ class ChromaDB():
         """
         results = self.chroma.similarity_search(
             query=query,
+            k=k
+        )
+
+        return results
+    
+    def query_by_vector(self, query, k):
+
+        results = self.chroma.similarity_search_by_vector(
+            embedding=self.embedding_model.embed_query(query),
             k=k
         )
 

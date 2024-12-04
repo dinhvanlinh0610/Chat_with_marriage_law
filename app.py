@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 
 # Import Utils
-from utils import process_data, split_data, save_data, init_llm
+from utils import process_data, split_data, save_data, init_llm, RAG, init_vector_store
 
 # Import Embedding Model
 from embedding import HuggingFaceEmbedding
@@ -46,6 +46,8 @@ def initialize(model_name: str, api_key: str, type_llm: str):
     """
     try:
         session_state["llm"] = init_llm(model_name, api_key, type_llm)
+        session_state["embedding_model"] = HuggingFaceEmbedding("keepitreal/vietnamese-sbert")
+        session_state["chroma"] = init_vector_store(collection_name="new", embedding_model=session_state["embedding_model"].embedding, path="./db/chroma_db")
     except Exception as e:
         # Log error
         return {"error": str(e)}
@@ -55,13 +57,14 @@ def initialize(model_name: str, api_key: str, type_llm: str):
 @app.get("/upload_file/")
 def upload_file(data_path: str):
     """
-    This is a function to process the data from the client.
+    This is a function to upload the file.
 
     Args:
-        data_path (str): Đường dẫn đến file pdf.
+        data_path (str): The path to the file.
 
     Returns:
-        list: Danh sách các câu trong file pdf.
+        str: A message to show that the file is uploaded.
+
 
     """
     embedding_model = HuggingFaceEmbedding("keepitreal/vietnamese-sbert")
@@ -69,8 +72,8 @@ def upload_file(data_path: str):
 
     documents = process_data(data_path)
     docs = split_data(documents, embedding_model.embedding)
-    chroma = save_data(collection_name="test", embedding_model=embedding_model.embedding, documents=docs)
-    session_state["chroma"] = chroma
+    vector_store = session_state["chroma"]
+    chroma = save_data(vector_store, documents=docs)
     return "success"
 
 @app.get("/setup/")
@@ -89,7 +92,14 @@ def setup(type_search: str):
 def chatbot(message: str):
 
     llm = session_state["llm"]
-    response = llm.generate_content(message)
+    embedding_model =  session_state["embedding_model"]
+    chroma = session_state["chroma"]
+    # embedding_model = session_state["embedding_model"]
+    retriever_docs = RAG(llm=llm,embedding_model=embedding_model.embedding, chroma=chroma.chroma, query=message, k=3)
+    print("\n retriever_docs: ", retriever_docs, "\n")
+    enhanced_prompt = """Bạn là một chatbot RAG hỗ trợ về Luật Hôn nhân Việt Nam 2014. Câu hỏi của người dùng là: "{} Trả lời bằng tiếng Việt  dựa trên dữ liệu được truy xuất sau: \n{}""".format(message, retriever_docs)
+
+    response = llm.generate_content(enhanced_prompt)
     return {"response": response}
 
 
