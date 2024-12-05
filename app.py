@@ -95,11 +95,16 @@ def chatbot(message: str):
     embedding_model =  session_state["embedding_model"]
     chroma = session_state["chroma"]
     # embedding_model = session_state["embedding_model"]
-    retriever_docs = RAG(llm=llm,embedding_model=embedding_model.embedding, chroma=chroma.chroma, query=message, k=3)
+    retriever_docs = RAG(llm=llm,embedding_model=embedding_model.embedding, chroma=chroma, query=message, k=3)
     print("\n retriever_docs: ", retriever_docs, "\n")
-    enhanced_prompt = """Bạn là một chatbot RAG hỗ trợ về Luật Hôn nhân Việt Nam 2014. Câu hỏi của người dùng là: "{} Trả lời bằng tiếng Việt  dựa trên dữ liệu được truy xuất sau: \n{}""".format(message, retriever_docs)
+    enhanced_prompt = """Câu hỏi: "{} \n Tài liệu: {}""".format(message, retriever_docs)
 
     response = llm.generate_content(enhanced_prompt)
+    print("\n response: ", response, "\n")
+    # enhanced = """Câu hỏi: "{} \n Câu trả lời: {}""".format(message, response)
+
+    # perfect_answer = llm.generate_perfect_answer(enhanced)
+    # print("\n perfect_answer: ", perfect_answer, "\n")
     return {"response": response}
 
 

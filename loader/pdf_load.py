@@ -10,7 +10,7 @@ class PDFLoader():
 
         """
         self.path = path
-        self.pdf_loader = PyPDFLoader(self.path)
+        self.pdf_loader = PDFMinerLoader(self.path)
         self.docs = []
 
     def loads(self):

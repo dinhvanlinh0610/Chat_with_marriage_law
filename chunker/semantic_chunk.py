@@ -9,7 +9,7 @@ class SemanticChunk():
             embedding_model (str): embedding model used to split text into semantic chunks.
         """
         self.embedding_model = embedding_model
-        self.text_splitter = SemanticChunker(embeddings=self.embedding_model, breakpoint_threshold_type="percentile")
+        self.text_splitter = SemanticChunker(embeddings=self.embedding_model, breakpoint_threshold_type="interquartile")
         self.docs = []
 
     def splits(self, documents):

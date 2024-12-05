@@ -26,7 +26,7 @@ class ChromaDB():
         """
         retriever = self.chroma.as_retriever(
             search_type="mmr",
-            search_kwargs={"k": 3, "fetch_k": 5}
+            search_kwargs={"k": 5, "fetch_k": 50, "lambda":0.5}
         )
         return retriever
     

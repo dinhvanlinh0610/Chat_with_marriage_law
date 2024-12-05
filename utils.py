@@ -65,7 +65,7 @@ def init_local_llms():
     localLLMs = run_ollama_model(selected_model)
 
     return localLLMs
-def init_llm(model_name = "llama3-8b-8192", api_key = None, type_llm = "online"):
+def init_llm(model_name = None, api_key = None, type_llm = "online"):
     """
     This function initializes the language model.
 
@@ -83,7 +83,7 @@ def init_llm(model_name = "llama3-8b-8192", api_key = None, type_llm = "online")
         llm = init_local_llms()
     return llm
 
-def RAG(llm, chroma, query, k= None, direct = None, type_search = "hyde_search", embedding_model=None ):
+def RAG(llm, chroma, query, k= None, direct = None, type_search = "retriever_search", embedding_model=None ):
 
     """
     This function takes in a query and returns a response using the RAG model.
