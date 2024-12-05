@@ -61,6 +61,48 @@ def has_amd_gpu():
     except FileNotFoundError:
         return False    
 
+def use_existing_or_run_container(container_name, image_name, gpu_option=None, position_noti="content"):
+    """
+    Function to reuse an existing container if available, otherwise start a new one.
+    """
+    # Check if the container exists
+    result = subprocess.run(["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{.Names}}"],
+                            capture_output=True, text=True)
+    container_exists = container_name in result.stdout.strip().split("\n")
+
+    if container_exists:
+        # Check if the container is running
+        result = subprocess.run(["docker", "ps", "--filter", f"name={container_name}", "--format", "{{.Names}}"],
+                                capture_output=True, text=True)
+        is_running = container_name in result.stdout.strip().split("\n")
+
+        if is_running:
+            if position_noti == "content":
+                print(f"Container '{container_name}' is already running.")
+            else:
+                print(f"Container '{container_name}' is already running.")
+            return  # Use the running container
+        else:
+            # Start the stopped container
+            subprocess.run(["docker", "start", container_name])
+            if position_noti == "content":
+                print(f"Started existing container '{container_name}'.")
+            else:
+                print(f"Started existing container '{container_name}'.")
+            return
+
+    # If the container doesn't exist, create a new one
+    if gpu_option == "nvidia":
+        os.system(f"docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name {container_name} {image_name}")
+    elif gpu_option == "amd":
+        os.system(f"docker run -d --device /dev/kfd --device /dev/dri -v ollama:/root/.ollama -p 11434:11434 --name {container_name} {image_name}")
+    else:
+        os.system(f"docker run -d -v ollama:/root/.ollama -p 11434:11434 --name {container_name} {image_name}")
+
+    if position_noti == "content":
+        print(f"Created and started a new container '{container_name}'.")
+    else:
+        print(f"Created and started a new container '{container_name}'.")
 
 def remove_running_container(
         container_name,
@@ -77,109 +119,99 @@ def remove_running_container(
             # st.sidebar.success(f"Removed the running container '{container_name}'.")
             print(f"Removed the running container '{container_name}'.")
 # Function to run the Ollama container based on the hardware type
-def run_ollama_container(
-        position_noti="content"
-    ):
+def run_ollama_container(position_noti="content"):
+    """
+    Function to start or reuse the Ollama container based on system and GPU configuration.
+    """
     system = platform.system().lower()
     container_name = "ollama"
-
-    # Remove the container if it's already running
-    remove_running_container(
-        container_name,
-        position_noti=position_noti
-    )
+    image_name = "ollama/ollama"
 
     if system == "linux" or system == "darwin":  # macOS or Linux
         if has_nvidia_gpu():
-            print("NVIDIA GPU detected. Installing NVIDIA Container Toolkit if necessary...")
-            # st.info("NVIDIA GPU detected. Installing NVIDIA Container Toolkit if necessary...")
+            print("NVIDIA GPU detected. Ensuring NVIDIA Container Toolkit is installed...")
             install_nvidia_toolkit()  # Ensure NVIDIA toolkit is installed
-            # Run Ollama container with NVIDIA GPU
-            os.system(f"docker run -d --gpus=all -v ollama:/root/.ollama -p 11434:11434 --name {container_name} ollama/ollama")
-            if position_noti == "content":
-                print("Ollama container running with NVIDIA GPU!")
-                # st.success("Ollama container running with NVIDIA GPU!")
-            else:
-                print("Ollama container running with NVIDIA GPU!")
-                # st.sidebar.success("Ollama container running with NVIDIA GPU!")
+            use_existing_or_run_container(container_name, image_name, gpu_option="nvidia", position_noti=position_noti)
         elif has_amd_gpu():
-            print("AMD GPU detected. Starting Ollama with ROCm support...")
-            # st.info("AMD GPU detected. Starting Ollama with ROCm support...")
-            # Run Ollama container with AMD GPU
-            os.system(f"docker run -d --device /dev/kfd --device /dev/dri -v ollama:/root/.ollama -p 11434:11434 --name {container_name} ollama/ollama:rocm")
-            if position_noti == "content":
-                print("Ollama container running with AMD GPU!")
-                # st.success("Ollama container running with AMD GPU!")
-            else:
-                print("Ollama container running with AMD GPU!")
-                # st.sidebar.success("Ollama container running with AMD GPU!")
+            print("AMD GPU detected. Starting with ROCm support...")
+            use_existing_or_run_container(container_name, image_name, gpu_option="amd", position_noti=position_noti)
         else:
-            if position_noti == "content":
-                print("No GPU detected. Starting Ollama with CPU-only support...")
-                # st.info("No GPU detected. Starting Ollama with CPU-only support...")
-            else:
-                print("No GPU detected. Starting Ollama with CPU-only support...")
-                # st.sidebar.info("No GPU detected. Starting Ollama with CPU-only support...")
-            # Run Ollama container with CPU-only
-            os.system(f"docker run -d -v ollama:/root/.ollama -p 11434:11434 --name {container_name} ollama/ollama")
-            
-            if position_noti == "content":
-                print("Ollama container running with CPU-only!")
-                # st.success("Ollama container running with CPU-only!")
-            else:
-                print("Ollama container running with CPU-only!")
-                # st.sidebar.success("Ollama container running with CPU-only!")
-
+            print("No GPU detected. Starting with CPU-only support...")
+            use_existing_or_run_container(container_name, image_name, position_noti=position_noti)
     elif system == "windows":
-        if position_noti == "content":
-            print("Please download and install Docker Desktop for Windows and run the following command manually:")
-            # st.warning("Please download and install Docker Desktop for Windows and run the following command manually:")
-        else:
-            print("Please download and install Docker Desktop for Windows and run the following command manually:")
-            # st.sidebar.warning("Please download and install Docker Desktop for Windows and run the following command manually:")
+        print("Please ensure Docker Desktop is installed and running on Windows.")
+        # subprocess.run(["docker", "run", "-d", "-v", "ollama:/root/.ollama", "-p", "11434:11434", "--name", container_name, image_name])
+        use_existing_or_run_container(container_name, image_name, position_noti=position_noti)
+import logging
+import requests
+from typing import List, Dict, Union
 
-        
-        # st.code(f"docker run -d -v ollama:/root/.ollama -p 11434:11434 --name {container_name} ollama/ollama")
-        # dùng subprocess để chạy lệnh trên terminal
-        subprocess.run(["docker", "run", "-d", "-v", "ollama:/root/.ollama", "-p", "11434:11434", "--name", container_name, "ollama/ollama"])
+# Thiết lập ghi log
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-class LocalLLM():
-    def __init__(self, model_name, position_noti="content"):
+# Định nghĩa các endpoint API dưới dạng hằng số
+PULL_ENDPOINT = "/api/pull"
+CHAT_ENDPOINT = "/api/chat"
+GENERATE_ENDPOINT = "/api/generate"
+
+class LocalLLM:
+    def __init__(self, model_name: str, position_noti: str = "content"):
         self.model_name = model_name
-        self.base_url = ollama_endpoint
+        self.base_url = ollama_endpoint  # ollama_endpoint là địa chỉ API của mô hình
         self.position_noti = position_noti
         self.pull_model()
 
     def pull_model(self):
-        print(f"Pulling the model '{self.model_name}'...")
+        logger.info(f"Đang tải mô hình '{self.model_name}'...")
+        try:
+            # Gửi yêu cầu POST để tải mô hình
+            response = requests.post(
+                f"{self.base_url}{PULL_ENDPOINT}",
+                json={"model": self.model_name},
+                timeout=10  # Thêm timeout để tránh request treo quá lâu
+            )
 
-        response = requests.post(
-            f"{self.base_url}/api/pull",
-            json={"model": self.model_name}
-        )
+            # Kiểm tra mã trạng thái HTTP
+            if response.status_code == 200:
+                if self.position_noti == "content":
+                    print(f"Tải mô hình '{self.model_name}' thành công!")
+                else:
+                    print(f"Tải mô hình '{self.model_name}' thành công!")
+            else:
+                error_message = response.json().get("error", "Có lỗi xảy ra.")
+                raise ValueError(f"Tải mô hình '{self.model_name}' thất bại: {error_message}")
 
-        if response.status_code != 200:
-            raise ValueError(f"Failed to pull the model '{self.model_name}'")
-        if self.position_noti == "content":
-            print(f"Model '{self.model_name}' pulled successfully!")
-            # st.success(f"Model '{self.model_name}' pulled successfully!")
-        else:
-            print(f"Model '{self.model_name}' pulled successfully!")
-            # st.sidebar.success(f"Model '{self.model_name}' pulled successfully!")
-        
-    def chat(self, messages):
-        try :
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Lỗi khi gửi yêu cầu: {e}")
+            raise
+
+    def generate_content(self, messages: List[Dict[str, str]]) -> Union[Dict[str, Union[str, int]], None]:
+        try:
+            # Dữ liệu gửi đến API
             data = {
                 "model": self.model_name,
-                "messages": messages,
+                "messages": [
+                { "role": "system",
+                        "content": """Bạn là một chuyên gia pháp lý chuyên về Luật Hôn nhân và Gia đình Việt Nam. Tôi sẽ cung cấp câu hỏi và các đoạn văn bản tài liệu.
+Nhiệm vụ của bạn:
+1. Sử dụng nội dung trong tài liệu đã cung cấp để trả lời câu hỏi.
+2. Trích dẫn chính xác số điều, khoản, mục và nội dung luật từ tài liệu(tự bổ sung hoặc sửa chữa).
+3. Nếu câu trả lời nằm ở nhiều điều khoản khác nhau, liệt kê tất cả, nhưng không mở rộng thêm bất kỳ ý kiến hay giải thích nào.
+4. Nếu không tìm thấy câu trả lời trong tài liệu, chỉ trả lời: 'Không tìm thấy quy định phù hợp trong tài liệu được cung cấp.'"""},
+    {"role": "user", "content": messages}
+  ],
                 "stream": False
             }
 
+            # Gửi yêu cầu POST để trò chuyện với mô hình
             response = requests.post(
-                f"{self.base_url}/api/chat",
-                json=data
+                f"{self.base_url}{CHAT_ENDPOINT}",
+                json=data,
+                timeout=3000
             )
 
+            # Kiểm tra mã trạng thái HTTP
             if response.status_code == 200:
                 response_json = response.json()
 
@@ -198,29 +230,39 @@ class LocalLLM():
                     "done": response_json.get('done')
                 }
             else:
-                
-                print(f"Failed to chat with the model '{self.model_name}'")
+                logger.error(f"Tạo cuộc trò chuyện với mô hình '{self.model_name}' thất bại")
                 return None
 
         except Exception as e:
-            print(f"Error: {str(e)}")
+            logger.error(f"Lỗi khi trò chuyện: {str(e)}")
             return None
-    
-    def generate_content(self, prompt):
-        data = {
-            "model": self.model_name,
-            "prompt": prompt,
-            "stream": False,
-        }
-        response = requests.post(
-            f"{self.base_url}/api/generate",
-            json=data
-        )
 
-        if response.status_code == 200:
-            response_json = response.json()
-            return response_json.get("response")
-        else:
+    def generate_content2(self, prompt: str) -> str:
+        try:
+            # Dữ liệu gửi đến API
+            data = {
+                "model": self.model_name,
+                "prompt": prompt,
+                "stream": False,
+            }
+
+            # Gửi yêu cầu POST để sinh nội dung
+            response = requests.post(
+                f"{self.base_url}{GENERATE_ENDPOINT}",
+                json=data,
+                timeout=10
+            )
+
+            # Kiểm tra mã trạng thái HTTP
+            if response.status_code == 200:
+                response_json = response.json()
+                return response_json.get("response", "")
+            else:
+                logger.error(f"Thất bại khi tạo nội dung với mô hình '{self.model_name}'")
+                return ""
+
+        except Exception as e:
+            logger.error(f"Lỗi khi tạo nội dung: {str(e)}")
             return ""
 
 def run_ollama_model(
