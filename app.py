@@ -71,7 +71,9 @@ def upload_file(data_path: str):
     session_state["embedding_model"] = embedding_model
 
     documents = process_data(data_path)
+    print("\n documents: \n", documents, "\n")
     docs = split_data(documents, embedding_model.embedding)
+    
     vector_store = session_state["chroma"]
     chroma = save_data(vector_store, documents=docs)
     return "success"
@@ -95,16 +97,21 @@ def chatbot(message: str):
     embedding_model =  session_state["embedding_model"]
     chroma = session_state["chroma"]
     # embedding_model = session_state["embedding_model"]
-    retriever_docs = RAG(llm=llm,embedding_model=embedding_model.embedding, chroma=chroma, query=message, k=3)
-    print("\n retriever_docs: ", retriever_docs, "\n")
-    enhanced_prompt = """Câu hỏi: "{} \n Tài liệu: {}""".format(message, retriever_docs)
+    retriever_docs = RAG(llm=llm,embedding_model=embedding_model.embedding, chroma=chroma, query=message, k=2)
+    print("\n ########### retriever_docs #############: \n", retriever_docs, "\n")
 
-    response = llm.generate_content(enhanced_prompt)
-    print("\n response: ", response, "\n")
-    # enhanced = """Câu hỏi: "{} \n Câu trả lời: {}""".format(message, response)
+    temp_prompt = f"Câu hỏi: {message} \n Tài liệu tham khảo: {retriever_docs}"
+    # print("############## Question ##############")
+    # print(temp_prompt)
+    # edit_docs = llm.generate_content_answer(temp_prompt)
 
-    # perfect_answer = llm.generate_perfect_answer(enhanced)
-    # print("\n perfect_answer: ", perfect_answer, "\n")
+    # # print("\n edit_docs\n", edit_docs, "\n")
+    # enhanced_prompt = """Câu hỏi: "{} \n Tài liệu: {}""".format(message, edit_docs)
+    # print("############## Enhanced Prompt ##############")
+    # print(enhanced_prompt)
+    # response = llm.generate_perfect_answer(enhanced_prompt)
+    response = llm.generate_content(temp_prompt)
+    print("\n answer: ", response, "\n")
     return {"response": response}
 
 

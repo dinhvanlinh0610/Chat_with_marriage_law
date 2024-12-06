@@ -4,6 +4,7 @@ from vector_store import ChromaDB
 from llms import OnlineLLM
 import numpy as np
 from llms.local_llms import run_ollama_container, run_ollama_model
+from llms.local_llms_linux import LocalLLM
 # Hàm xử lý dữ liệu nhận được từ client 
 def process_data(data):
     """
@@ -79,8 +80,10 @@ def init_llm(model_name = None, api_key = None, type_llm = "online"):
     """
     if type_llm == "online":
         llm = OnlineLLM(model_name, api_key)
-    else:
+    elif type_llm == "local_windows":
         llm = init_local_llms()
+    else:
+        llm = LocalLLM(model_name)
     return llm
 
 def RAG(llm, chroma, query, k= None, direct = None, type_search = "retriever_search", embedding_model=None ):

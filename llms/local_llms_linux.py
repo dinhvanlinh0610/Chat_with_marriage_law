@@ -49,7 +49,7 @@ class LocalLLM:
             print(f"Request error: {e}")
             raise
 
-    def generate_content(self, messages: List[Dict[str, str]]) -> Union[Dict[str, Union[str, int]], None]:
+    def generate_content(self, messages):
         """
         Generate content based on provided messages using the model.
         Args:
@@ -65,8 +65,9 @@ class LocalLLM:
                     1. Sử dụng nội dung trong tài liệu đã cung cấp để trả lời câu hỏi. 
                     2. Trích dẫn chính xác số điều, khoản, mục và nội dung luật từ tài liệu (tự bổ sung hoặc sửa chữa). 
                     3. Nếu câu trả lời nằm ở nhiều điều khoản khác nhau, liệt kê tất cả, nhưng không mở rộng thêm bất kỳ ý kiến hay giải thích nào. 
-                    4. Nếu không tìm thấy câu trả lời trong tài liệu, chỉ trả lời: 'Không tìm thấy quy định phù hợp trong tài liệu được cung cấp.'"""}
-                ] + messages,
+                    4. Nếu không tìm thấy câu trả lời trong tài liệu, chỉ trả lời: 'Không tìm thấy quy định phù hợp trong tài liệu được cung cấp.'"""},
+                    {"role": "user", "content": messages}
+                ] ,
                 "stream": False
             }
 
@@ -100,7 +101,7 @@ class LocalLLM:
             print(f"Error during chat generation: {e}")
             return None
 
-    def generate_content2(self, prompt: str) -> str:
+    def generate_content_answer(self, prompt: str) -> str:
         """
         Generate content directly from a prompt using the model.
         Args:
@@ -111,14 +112,14 @@ class LocalLLM:
         try:
             data = {
                 "model": self.model_name,
-                "prompt": prompt,
+                "prompt": f"Nhận vào 1 câu hỏi và các tài liệu liên quan, lọc để trả về các tài liệu hữu dụng để trả lời câu hỏi đó : {prompt}",
                 "stream": False
             }
 
             response = requests.post(
                 f"{self.base_url}{GENERATE_ENDPOINT}",
                 json=data,
-                timeout=10
+                timeout=300
             )
 
             if response.status_code == 200:
