@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-python-multilpart
+python-multipart
 langchain
 langchain_community
 langchain_experimental
@@ -9,3 +9,4 @@ langchain_groq
 groq
 langchain_chroma
 pypdf
+python-dotenv
